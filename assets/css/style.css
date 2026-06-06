@@ -455,24 +455,25 @@ body {
 /* ═══════════════════════════════════════
    BOUTONS ACTIONS
 ═══════════════════════════════════════ */
-.btn-action {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 8px 16px;
-  background: var(--vert);
-  color: #fff;
-  border: none;
-  border-radius: 9px;
-  font-size: .82rem;
-  font-weight: 500;
-  cursor: pointer;
-  text-decoration: none;
-  transition: background .2s;
-  white-space: nowrap;
-  font-family: 'DM Sans', sans-serif;
+.btn-action{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:10px;
+    height:52px;
+    background:linear-gradient(135deg,#18a689,#13856d);
+    color:#fff;
+    border:none;
+    border-radius:14px;
+    font-weight:600;
+    transition:.3s;
 }
-.btn-action:hover { background: var(--vert-fonce); color: #fff; }
+
+.btn-action:hover{
+    background:linear-gradient(135deg,#1ab694,#149078);
+    transform:translateY(-2px);
+    box-shadow:0 10px 20px rgba(24,166,137,.25);
+}
 
 .btn-action-outline {
   display: inline-flex;

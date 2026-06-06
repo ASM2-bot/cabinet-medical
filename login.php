@@ -117,7 +117,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         </div>
       </div>
 
-      <button type="submit" class="btn-action w-100 justify-content-center py-2">
+      <button type="submit" class="btn-action w-100">
         <i class="fa-solid fa-right-to-bracket"></i>
         Se connecter
       </button>
