@@ -5,7 +5,7 @@ error_reporting(E_ALL);
 session_start();
 require_once __DIR__ . '/config/database.php';
 
-// Déjà connecté → dashboard
+// Déjà connecté au  dashboard
 if (isset($_SESSION['admin_id'])) {
     header('Location: admin/dashboard.php');
     exit;
