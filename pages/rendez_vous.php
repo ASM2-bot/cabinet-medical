@@ -1,112 +1,34 @@
 <?php
 ini_set('display_errors', 1);
 error_reporting(E_ALL);
-
 session_start();
 require_once __DIR__ . '/../config/database.php';
+require_once __DIR__ . '/../classes/RendezVous.php';
 
-// ─────────────────────────────
-//  AJOUTER un RDV
-// ─────────────────────────────
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && $_POST['action'] === 'ajouter') {
-    $stmt = $pdo->prepare("
-        INSERT INTO rendez_vous (patient_id, medecin_id, date_rdv, heure_rdv, motif, statut)
-        VALUES (?, ?, ?, ?, ?, ?)
-    ");
-    $stmt->execute([
-        (int)$_POST['patient_id'],
-        (int)$_POST['medecin_id'],
-        $_POST['date_rdv'],
-        $_POST['heure_rdv'],
-        trim($_POST['motif']),
-        $_POST['statut'] ?? 'en_attente'
-    ]);
-    $msg = ['type' => 'success', 'texte' => 'Rendez-vous ajouté avec succès.'];
+$rdvModel = new RendezVous($pdo);
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $action = $_POST['action'] ?? '';
+
+    if ($action === 'ajouter') {
+        $rdvModel->ajouter($_POST);
+        $msg = ['type' => 'success', 'texte' => 'Rendez-vous ajouté avec succès.'];
+    }
+    if ($action === 'modifier') {
+        $rdvModel->modifier((int)$_POST['id'], $_POST);
+        $msg = ['type' => 'success', 'texte' => 'Rendez-vous modifié avec succès.'];
+    }
+    if ($action === 'supprimer') {
+        $rdvModel->supprimer((int)$_POST['id']);
+        $msg = ['type' => 'warning', 'texte' => 'Rendez-vous supprimé.'];
+    }
 }
 
-// ─────────────────────────────
-//  MODIFIER un RDV
-// ─────────────────────────────
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && $_POST['action'] === 'modifier') {
-    $stmt = $pdo->prepare("
-        UPDATE rendez_vous
-        SET patient_id = ?, medecin_id = ?, date_rdv = ?,
-            heure_rdv = ?, motif = ?, statut = ?
-        WHERE id = ?
-    ");
-    $stmt->execute([
-        (int)$_POST['patient_id'],
-        (int)$_POST['medecin_id'],
-        $_POST['date_rdv'],
-        $_POST['heure_rdv'],
-        trim($_POST['motif']),
-        $_POST['statut'],
-        (int)$_POST['id']
-    ]);
-    $msg = ['type' => 'success', 'texte' => 'Rendez-vous modifié avec succès.'];
-}
-
-// ─────────────────────────────
-//  SUPPRIMER un RDV
-// ─────────────────────────────
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && $_POST['action'] === 'supprimer') {
-    $pdo->prepare("DELETE FROM rendez_vous WHERE id = ?")
-        ->execute([(int)$_POST['id']]);
-    $msg = ['type' => 'warning', 'texte' => 'Rendez-vous supprimé.'];
-}
-
-// ─────────────────────────────
-//  RECHERCHER / FILTRER
-// ─────────────────────────────
 $recherche = trim($_GET['q'] ?? '');
 $filtre    = $_GET['filtre'] ?? 'tous';
-
-$sql = "
-    SELECT r.*,
-           CONCAT(p.prenom, ' ', p.nom)       AS patient_nom,
-           CONCAT('Dr. ', m.prenom, ' ', m.nom) AS medecin_nom
-    FROM rendez_vous r
-    JOIN patients p ON p.id = r.patient_id
-    JOIN medecins m ON m.id = r.medecin_id
-";
-
-$conditions = [];
-$params     = [];
-
-if ($filtre === 'aujourd_hui') {
-    $conditions[] = "r.date_rdv = CURDATE()";
-}
-if ($filtre === 'en_attente') {
-    $conditions[] = "r.statut = 'en_attente'";
-}
-if ($recherche) {
-    $conditions[] = "(p.nom LIKE ? OR p.prenom LIKE ? OR m.nom LIKE ?)";
-    $like = '%' . $recherche . '%';
-    $params = array_merge($params, [$like, $like, $like]);
-}
-
-if (!empty($conditions)) {
-    $sql .= " WHERE " . implode(" AND ", $conditions);
-}
-
-$sql .= " ORDER BY r.date_rdv DESC, r.heure_rdv ASC";
-
-$stmt = $pdo->prepare($sql);
-$stmt->execute($params);
-$rdvList = $stmt->fetchAll();
-
-// ─────────────────────────────
-//  LISTES pour les selects
-// ─────────────────────────────
-$patients = $pdo->query("
-    SELECT id, CONCAT(prenom, ' ', nom) AS nom_complet
-    FROM patients ORDER BY nom
-")->fetchAll();
-
-$medecins = $pdo->query("
-    SELECT id, CONCAT('Dr. ', prenom, ' ', nom) AS nom_complet, specialite
-    FROM medecins WHERE actif = 1 ORDER BY nom
-")->fetchAll();
+$rdvList   = $rdvModel->getListe($filtre, $recherche);
+$patients  = $rdvModel->getPatients();
+$medecins  = $rdvModel->getMedecins();
 ?>
 <!DOCTYPE html>
 <html lang="fr">
@@ -120,7 +42,7 @@ $medecins = $pdo->query("
   <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700&family=DM+Sans:wght@400;500&display=swap" rel="stylesheet"/>
   <link href="../assets/css/style.css" rel="stylesheet"/>
 </head>
-<body>:
+<body>
     <?php include __DIR__ . '/../includes/header.php'; ?>
     <div class="container-fluid px-4 py-4">
 

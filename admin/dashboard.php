@@ -1,30 +1,22 @@
 <?php
 ini_set('display_errors', 1);
 error_reporting(E_ALL);
-
+session_start();
 require_once __DIR__ . '/../config/database.php';
+require_once __DIR__ . '/../classes/Patient.php';
+require_once __DIR__ . '/../classes/Medecin.php';
+require_once __DIR__ . '/../classes/RendezVous.php';
 
-// --- Statistiques ---
-$totalPatients = $pdo->query("SELECT COUNT(*) FROM patients")->fetchColumn();
-$totalRdv      = $pdo->query("SELECT COUNT(*) FROM rendez_vous")->fetchColumn();
-$rdvAujourdhui = $pdo->query("SELECT COUNT(*) FROM rendez_vous WHERE date_rdv = CURDATE()")->fetchColumn();
-$totalMedecins = $pdo->query("SELECT COUNT(*) FROM medecins WHERE actif = 1")->fetchColumn();
+$patientModel  = new Patient($pdo);
+$medecinModel  = new Medecin($pdo);
+$rdvModel      = new RendezVous($pdo);
 
-// --- Médecins ---
-$medecins = $pdo->query("SELECT * FROM medecins WHERE actif = 1 ORDER BY nom")->fetchAll();
-
-// --- RDV du jour ---
-$rdvDuJour = $pdo->query("
-    SELECT r.heure_rdv, r.motif, r.statut,
-           CONCAT(p.prenom, ' ', p.nom) AS patient_nom,
-           CONCAT('Dr. ', m.prenom, ' ', m.nom) AS medecin_nom
-    FROM rendez_vous r
-    JOIN patients p ON p.id = r.patient_id
-    JOIN medecins m ON m.id = r.medecin_id
-    WHERE r.date_rdv = CURDATE()
-    ORDER BY r.heure_rdv ASC
-")->fetchAll();
-// --- Test rapide ---
+$totalPatients = $patientModel->compter();
+$totalMedecins = $medecinModel->compter();
+$totalRdv      = $rdvModel->compter();
+$rdvAujourdhui = $rdvModel->compterAujourdhui();
+$medecins      = $medecinModel->getAll();
+$rdvDuJour     = $rdvModel->getAujourdhui();
 ?>
 <!DOCTYPE html>
 <html lang="fr">

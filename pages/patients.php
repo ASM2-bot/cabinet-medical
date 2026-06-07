@@ -1,77 +1,33 @@
 <?php
 ini_set('display_errors', 1);
 error_reporting(E_ALL);
-
 session_start();
 require_once __DIR__ . '/../config/database.php';
+require_once __DIR__ . '/../classes/Patient.php';
 
-// ─────────────────────────────
-//  AJOUTER un patient
-// ─────────────────────────────
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && $_POST['action'] === 'ajouter') {
-    $stmt = $pdo->prepare("
-        INSERT INTO patients (nom, prenom, date_naissance, telephone, email, adresse)
-        VALUES (?, ?, ?, ?, ?, ?)
-    ");
-    $stmt->execute([
-        trim($_POST['nom']),
-        trim($_POST['prenom']),
-        $_POST['date_naissance'] ?: null,
-        trim($_POST['telephone']),
-        trim($_POST['email']),
-        trim($_POST['adresse'])
-    ]);
-    $msg = ['type' => 'success', 'texte' => 'Patient ajouté avec succès.'];
+$patientModel = new Patient($pdo);
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $action = $_POST['action'] ?? '';
+
+    if ($action === 'ajouter') {
+        $patientModel->ajouter($_POST);
+        $msg = ['type' => 'success', 'texte' => 'Patient ajouté avec succès.'];
+    }
+    if ($action === 'modifier') {
+        $patientModel->modifier((int)$_POST['id'], $_POST);
+        $msg = ['type' => 'success', 'texte' => 'Patient modifié avec succès.'];
+    }
+    if ($action === 'supprimer') {
+        $patientModel->supprimer((int)$_POST['id']);
+        $msg = ['type' => 'warning', 'texte' => 'Patient supprimé.'];
+    }
 }
 
-// ─────────────────────────────
-//  MODIFIER un patient
-// ─────────────────────────────
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && $_POST['action'] === 'modifier') {
-    $stmt = $pdo->prepare("
-        UPDATE patients
-        SET nom = ?, prenom = ?, date_naissance = ?, telephone = ?, email = ?, adresse = ?
-        WHERE id = ?
-    ");
-    $stmt->execute([
-        trim($_POST['nom']),
-        trim($_POST['prenom']),
-        $_POST['date_naissance'] ?: null,
-        trim($_POST['telephone']),
-        trim($_POST['email']),
-        trim($_POST['adresse']),
-        (int)$_POST['id']
-    ]);
-    $msg = ['type' => 'success', 'texte' => 'Patient modifié avec succès.'];
-}
-
-// ─────────────────────────────
-//  SUPPRIMER un patient
-// ─────────────────────────────
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && $_POST['action'] === 'supprimer') {
-    $pdo->prepare("DELETE FROM patients WHERE id = ?")
-        ->execute([(int)$_POST['id']]);
-    $msg = ['type' => 'warning', 'texte' => 'Patient supprimé.'];
-}
-
-// ─────────────────────────────
-//  RECHERCHER / LISTER
-// ─────────────────────────────
 $recherche = trim($_GET['q'] ?? '');
-
-if ($recherche) {
-    $stmt = $pdo->prepare("
-        SELECT * FROM patients
-        WHERE nom LIKE ? OR prenom LIKE ? OR telephone LIKE ?
-        ORDER BY created_at DESC
-    ");
-    $like = '%' . $recherche . '%';
-    $stmt->execute([$like, $like, $like]);
-} else {
-    $stmt = $pdo->query("SELECT * FROM patients ORDER BY created_at DESC");
-}
-
-$patients = $stmt->fetchAll();
+$patients  = $recherche
+    ? $patientModel->rechercher($recherche)
+    : $patientModel->getAll();
 ?>
 <!DOCTYPE html>
 <html lang="fr">
